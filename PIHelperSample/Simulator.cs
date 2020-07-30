@@ -46,48 +46,24 @@ namespace PIHelperSample
         private void calculate_sinusoid(object obj)
         {
             SimulatorParam param = (SimulatorParam)obj;
-                                 
-            int halfInterval = SIN_WAVE / param.stepTime / 2; //экстремум синусоиды по x, y=max y=-max
-            double value = param.max / halfInterval;
 
+            int intervalCount = SIN_WAVE / param.stepTime;//количество меток времени для записи в архив
+            double kof = 2 * Math.PI / intervalCount;   //угловой коэффициент 
             int timeout = param.stepTime * 1000;
 
-            double curValue = 0;
-            param.tag.Data.UpdateValue(curValue,  DateTime.Now);
+            
+            param.tag.Data.UpdateValue(0,  DateTime.Now);
             Thread.Sleep(timeout);
             while (true)
             {
-
-                for (int i = 0; i < halfInterval; i++)
+                double angle = kof;
+                for (int i = 0; i < intervalCount; i++)
                 {
-                    curValue =+ value;
-                    param.tag.Data.UpdateValue(curValue, DateTime.Now);
+                    double value = Math.Sin(angle) * param.max;
+                    angle += kof;
+                    param.tag.Data.UpdateValue(value, DateTime.Now);
                     Thread.Sleep(timeout);
                 }
-
-                for (int i = 0; i < halfInterval; i++)
-                {
-                    curValue =- value;
-                    param.tag.Data.UpdateValue(curValue, DateTime.Now);
-                    Thread.Sleep(timeout);
-                }
-
-                for (int i = 0; i < halfInterval; i++)
-                {
-                    curValue =+ value;
-                    double temp = curValue * -1;
-                    param.tag.Data.UpdateValue(temp, DateTime.Now);
-                    Thread.Sleep(timeout);
-                }
-                for (int i = 0; i < halfInterval; i++)
-                {
-                    curValue =- value;
-                    double temp = curValue * -1;
-                    param.tag.Data.UpdateValue(temp, DateTime.Now);
-                    Thread.Sleep(timeout);
-                }
-
-
             }
 
 
