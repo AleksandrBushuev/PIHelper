@@ -71,6 +71,7 @@
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.label1 = new System.Windows.Forms.Label();
             this.lbMessage = new System.Windows.Forms.Label();
+            this.label12 = new System.Windows.Forms.Label();
             this.panel2.SuspendLayout();
             this.groupBox6.SuspendLayout();
             this.groupBox5.SuspendLayout();
@@ -495,11 +496,12 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.label12);
             this.groupBox3.Controls.Add(this.label1);
             this.groupBox3.Controls.Add(this.lbMessage);
             this.groupBox3.Location = new System.Drawing.Point(5, 430);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(850, 40);
+            this.groupBox3.Size = new System.Drawing.Size(834, 40);
             this.groupBox3.TabIndex = 14;
             this.groupBox3.TabStop = false;
             // 
@@ -520,6 +522,16 @@
             this.lbMessage.Name = "lbMessage";
             this.lbMessage.Size = new System.Drawing.Size(0, 20);
             this.lbMessage.TabIndex = 13;
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.label12.Location = new System.Drawing.Point(631, 16);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(180, 17);
+            this.label12.TabIndex = 15;
+            this.label12.Text = "Aleksandr Bushuev © 2020";
             // 
             // Form1
             // 
@@ -592,6 +604,7 @@
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.TextBox textBox6;
+        private System.Windows.Forms.Label label12;
     }
 }
 

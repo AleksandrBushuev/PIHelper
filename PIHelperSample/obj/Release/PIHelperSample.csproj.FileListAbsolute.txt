@@ -1,0 +1,9 @@
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\bin\Release\PIHelperSample.exe.config
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\bin\Release\PIHelperSample.exe
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\bin\Release\PIHelperSample.pdb
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\obj\Release\PIHelperSample.Form1.resources
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\obj\Release\PIHelperSample.Properties.Resources.resources
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\obj\Release\PIHelperSample.csproj.GenerateResource.cache
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\obj\Release\PIHelperSample.csproj.CoreCompileInputs.cache
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\obj\Release\PIHelperSample.exe
+C:\Users\AlexBushuev\Desktop\Утилиты\Проекты\PIHelperSample\PIHelperSample\obj\Release\PIHelperSample.pdb
