@@ -54,7 +54,7 @@
             this.label8 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btWriteValues = new System.Windows.Forms.Button();
             this.textBox3 = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
@@ -334,7 +334,7 @@
             // 
             // groupBox4
             // 
-            this.groupBox4.Controls.Add(this.button1);
+            this.groupBox4.Controls.Add(this.btWriteValues);
             this.groupBox4.Controls.Add(this.textBox3);
             this.groupBox4.Controls.Add(this.textBox2);
             this.groupBox4.Controls.Add(this.label7);
@@ -353,14 +353,15 @@
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Range";
             // 
-            // button1
+            // btWriteValues
             // 
-            this.button1.Location = new System.Drawing.Point(28, 209);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(135, 35);
-            this.button1.TabIndex = 20;
-            this.button1.Text = "WriteValues";
-            this.button1.UseVisualStyleBackColor = true;
+            this.btWriteValues.Location = new System.Drawing.Point(28, 209);
+            this.btWriteValues.Name = "btWriteValues";
+            this.btWriteValues.Size = new System.Drawing.Size(135, 35);
+            this.btWriteValues.TabIndex = 20;
+            this.btWriteValues.Text = "WriteValues";
+            this.btWriteValues.UseVisualStyleBackColor = true;
+            this.btWriteValues.Click += new System.EventHandler(this.button1_Click);
             // 
             // textBox3
             // 
@@ -579,7 +580,7 @@
         private System.Windows.Forms.TextBox textBox5;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label9;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btWriteValues;
         private System.Windows.Forms.TextBox textBox3;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label label7;
