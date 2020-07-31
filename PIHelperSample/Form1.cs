@@ -32,7 +32,13 @@ namespace PIHelperSample
             }  
 
             string tagName = textBoxTag.Text;
-            double value = Double.Parse(textBoxValue.Text);
+            double value;
+
+            if (!double.TryParse(textBoxValue.Text, out value))
+            {
+                MessageBox.Show(string.Format("Не удалось распознать формат данных поля Value!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            };
             DateTime date = dateTimePicker1.Value;
 
             PIPoint tag = searchPoint(tagName);
@@ -216,5 +222,147 @@ namespace PIHelperSample
                 textBox4.Enabled = false;
             }
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            PIPoint tag = null;
+            int min, max,stepTime;
+
+            DateTime dateStart = dateTimePickerStart.Value;
+            DateTime dateEnd = dateTimePickerEnd.Value;
+
+            if (!isConnect)
+            {
+                notify("Отсутствует подключение с сервером!!!");
+                return;
+            }
+
+            if (dateStart > dateEnd)
+            {
+                MessageBox.Show(string.Format("Начальная дата не может быть больше или равна конечной!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            tag = searchPoint(textBoxTag.Text);
+            if (tag == null)
+            {
+                return;
+            }
+
+            if (!int.TryParse(textBox3.Text, out min))
+            {
+                MessageBox.Show(string.Format("Не удалось распознать формат данных поля Min!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!int.TryParse(textBox2.Text, out max))
+            {
+                MessageBox.Show(string.Format("Не удалось распознать формат данных поля Max!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (min >= max)
+            {
+                MessageBox.Show(string.Format("Min не должно быть больше или равно Max!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if(!int.TryParse(textBox1.Text, out stepTime))
+            {
+                MessageBox.Show(string.Format("Не удалось распознать формат данных поля StepTime!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            TimeSpan interval = ConvertSecond(stepTime);
+
+            SortedList<DateTime, int> values = GenerateValuesByTime(min, max, interval, dateStart, dateEnd);
+
+            btWriteValues.Enabled = false;
+            WriteRangeAsync(tag,values);
+            notify("Выполняется запись данных...");
+            
+
+        }
+
+
+        private async void WriteRangeAsync(PIPoint tag, SortedList<DateTime, int> values)
+        {
+            
+            var status= await Task<bool>.Run(() =>
+            {
+                foreach (var iteam in values)
+                {                    
+                    try
+                    {
+                       tag.Data.UpdateValue(iteam.Value, iteam.Key);
+                    }
+                    catch(Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка записи данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return false;
+                    }
+                   
+                }
+                return true;
+            });
+
+            if (status)
+            {
+                notify("Запись выполнена успешно!");
+                btWriteValues.Enabled = true;
+            }
+            else
+            {
+                btWriteValues.Enabled = true;
+            }
+
+        }
+
+
+        private SortedList<DateTime, int> GenerateValuesByTime(int min, int max, TimeSpan interval, DateTime start, DateTime end)
+        {
+            SortedList<DateTime, int> values = new SortedList<DateTime, int>();
+            Random random = new Random();        
+
+            DateTime currentTime = start; 
+              
+            do
+            {
+                int currentValue = random.Next(min, max);
+                values.Add(currentTime, currentValue);               
+                currentTime += interval;
+
+            } while (currentTime < end);
+
+            values.Add(end, random.Next(min,max));
+
+
+            return values;
+        }
+
+        private TimeSpan ConvertSecond(int seconds)
+        {
+
+            
+            int s = seconds % 60;
+            int m = seconds / 60;
+            int h = 0;
+            int d = 0;
+
+
+            if (m >= 60)
+            {
+                h = m / 60;
+                m = m - h * 60;
+            }
+            if (h >= 24)
+            {
+                d = h % 24;
+                h = h - d * 24;
+            }
+
+            return new TimeSpan(d, h, m, s);
+        }
+
+
     }
 }
