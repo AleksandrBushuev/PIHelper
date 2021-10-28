@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Pi.Client;
 using PISDK;
+using PIPoint = PISDK.PIPoint;
 
 namespace PIHelperSample
 {
@@ -16,6 +16,7 @@ namespace PIHelperSample
     {
         private PISDK.PISDK SDK;
         private Server server;
+        private PIClient _server;
         private ISimulator simulator;
         private bool isConnect;
                
@@ -25,37 +26,22 @@ namespace PIHelperSample
         }
 
         private void buttonWrite_Click(object sender, EventArgs e)
-        {
-            if (!isConnect)
-            {
-                return;
-            }  
-
+        {          
             string tagName = textBoxTag.Text;
-            double value;
-
-            if (!double.TryParse(textBoxValue.Text, out value))
-            {
-                MessageBox.Show(string.Format("Не удалось распознать формат данных поля Value!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            };
+            object value = textBoxValue.Text;
             DateTime date = dateTimePicker1.Value;
 
-            PIPoint tag = searchPoint(tagName);
-            if (tag == null)
+            if (_server.IsConnected)
             {
-                return;
-            }
-
-            try
-            {              
-                tag.Data.UpdateValue(value, date);
-                notify(string.Format("Запись значения в {0} успешно выполнена!",tagName));
-            }catch (Exception ex)
-            {
-                MessageBox.Show(string.Format("Не удалось записать значение в архив тега {0}\n\n {1}", tagName, ex.Message), "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
-               
-            }
+                try
+                {
+                    _server.UpdateValue(tagName, value, date);
+                    notify("Запись выполнена успешно!");
+                }catch(NullReferenceException ex)
+                {
+                    notify(ex.Message);
+                }               
+            }         
             
         }
 
@@ -94,31 +80,105 @@ namespace PIHelperSample
                 PIPoint tag = tags[1];
                 textBoxTag.Text = tag.Name;
             }
-
-
         }
 
         private void btnConnect_Click(object sender, EventArgs e)
         {
-            string serverName = textBoxServer.Text;
+            string serverName = string.Empty;
+            if (isDefaultConnection.Checked)
+            {
+                serverName = SDK.Servers.DefaultServer.Name;
+                ConnectDefault(serverName);
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(textBoxServer.Text))
+                {
+                    notify("Не указано имя сервера");
+                    return;
+                }
+                if (string.IsNullOrEmpty(inputUserName.Text))
+                {
+                    notify("Не указано имя пользователя");
+                    return;
+                }
+                if (string.IsNullOrEmpty(inputPassword.Text))
+                {
+                    notify("Не указан пароль");
+                    return;
+                }
+                serverName = textBoxServer.Text;
+                 Connect(serverName, inputUserName.Text, inputPassword.Text);
+            }
+
+            indicateConnection();
+        }
+
+        private void indicateConnection()
+        {
+
+            if (isConnect)
+            {
+                textBoxServer.ForeColor = Color.Green;
+                textBoxServer.BackColor = textBoxServer.BackColor;
+                notify(string.Format("Подключение успешно выполенено!"));
+            }
+            else
+            {
+               
+                textBoxServer.ForeColor = Color.Red;
+                textBoxServer.BackColor = textBoxServer.BackColor;
+                notify(string.Format("Не удалось выполнить подключение!"));
+            }
+        }
+
+        private void ConnectDefault(string serverName)
+        {            
             try
             {
-                server = SDK.Servers[serverName];
+                server = SDK.Servers.DefaultServer;
                 server.Open();
-               
+                _server = new PIClient();
+                _server.Connect();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format("Не удалось выполнить подключение к серверу {0}\n\n {1}", serverName, ex.Message), "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Не удалось выполнить подключение к серверу {serverName}\n\n {ex.Message}", "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            if(server!=null && server.Connected)
-            {
-                textBoxServer.ForeColor = Color.Green;
+            if (server != null && server.Connected && _server.IsConnected)
+            {            
                 isConnect = true;
-                notify(string.Format("Подключение к {0} успешно выполенено!", serverName));
             }
-            
+            else
+            {           
+                isConnect = false;
+            }                         
         }
+
+        private void Connect(string serverName, string userName, string password)
+        {
+            try
+            {
+                server = SDK.Servers[serverName];
+                server.Open($"UID={userName};PWD={password}"); //PISDK
+
+                _server = new PIClient();
+                _server.Connect(serverName, userName, password); //AFSDK
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Не удалось выполнить подключение к серверу {serverName}\n\n {ex.Message}", "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            if (server != null && server.Connected && _server.IsConnected)
+            {
+                isConnect = true;
+            }
+            else
+            {
+                isConnect = false;
+            }
+        }
+
 
         private void notify(string message)
         {
@@ -208,6 +268,7 @@ namespace PIHelperSample
             }
             catch (Exception ex) {
                 MessageBox.Show(string.Format("Не удалось найти тег {0}\n\n {1}", tagName, ex.Message), "Ошибка поиска", MessageBoxButtons.OK, MessageBoxIcon.Error);
+               
             }
             return tag;
            
@@ -286,7 +347,8 @@ namespace PIHelperSample
 
         private async void WriteRangeAsync(PIPoint tag, SortedList<DateTime, int> values)
         {
-            
+            int sucssesCount = 0;
+            int errorCount = 0;
             var status= await Task<bool>.Run(() =>
             {
                 foreach (var iteam in values)
@@ -294,11 +356,11 @@ namespace PIHelperSample
                     try
                     {
                        tag.Data.UpdateValue(iteam.Value, iteam.Key);
+                        sucssesCount += 1;
                     }
                     catch(Exception ex)
                     {
-                        MessageBox.Show(ex.Message, "Ошибка записи данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return false;
+                        errorCount += 1;
                     }
                    
                 }
@@ -307,13 +369,43 @@ namespace PIHelperSample
 
             if (status)
             {
-                notify("Запись выполнена успешно!");
+                notify($"Запись {sucssesCount} из {values.Count} выполнена успешно! С ошибками {errorCount}");
                 btWriteValues.Enabled = true;
             }
             else
             {
                 btWriteValues.Enabled = true;
             }
+
+        }
+
+        private async void WriteRangeAsync(PIPoint tag, List<CSVDataRow> values, Button btn)
+        {
+            btn.Enabled = false;
+            var status = await Task<bool>.Run(() =>
+            {
+                foreach (var iteam in values)
+                {
+                    try
+                    {
+                        tag.Data.UpdateValue(iteam.Value, iteam.Timestamp);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка записи данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return false;
+                    }
+
+                }
+                return true;
+            });
+
+            if (status)
+            {
+                notify("Запись выполнена успешно!");              
+            }
+
+            btn.Enabled = true;
 
         }
 
@@ -363,6 +455,94 @@ namespace PIHelperSample
             return new TimeSpan(d, h, m, s);
         }
 
+        private async void btnImport_ClickAsync(object sender, EventArgs e)
+        {            
+            string tagName = textBoxTag.Text;
+            if (string.IsNullOrEmpty(tagName))
+            {
+                MessageBox.Show("Укажите тег в который необходимо выполнить запись значений", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
+            string filePath = GetFilePath("csv files (*.csv)|*.csv");
+            
+            if(string.IsNullOrEmpty(filePath))
+            {
+                notify("Не указан файл импорта!");
+                return;
+            }
+
+            IEnumerable<IValueData> values = await GetDataImportAsync(filePath);
+            
+            int count = _server.ImportCsv(textBoxTag.Text, values);
+
+            MessageBox.Show($"Выполнена запись {count} значений");
+        }
+
+        
+
+        private async Task<IEnumerable<IValueData>> GetDataImportAsync(string filePath)
+        {
+            SystemStateHelper stateHelper = new SystemStateHelper();
+            CSVHelper helper = new CSVHelper();
+            var configuration = helper.GetCsvConfiguration(Encoding.UTF8, CultureInfo.CreateSpecificCulture("ru-RU"), ";");
+            List<CSVDataRow> dataRows = await helper.GetDataFileAsync<CSVDataRow>(filePath, configuration);    
+            
+            IEnumerable<IValueData> values = dataRows.Select(row => new ValueData(stateHelper.GetValue(row.Value), row.Timestamp));
+            return values;
+        }
+     
+
+        private string GetFilePath(string filter)
+        {
+            string filePath = string.Empty;
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "csv files (*.csv)|*.csv";
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    filePath = openFileDialog.FileName;
+                }
+            }
+            return filePath;
+        }
+
+      
+
+        private async void btnDeleteValues_Click(object sender, EventArgs e)
+        {            
+            string tagName = textBoxTag.Text;
+            if (string.IsNullOrEmpty(tagName))
+            {
+                MessageBox.Show("Укажите тег в который необходимо выполнить запись значений", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            notify($"Выполняется удаление значений из тега {tagName}");
+            await Task.Run(() =>
+            {
+                PIPoint tag = searchPoint(tagName);
+                if (tag == null)
+                {
+
+                }
+                tag.Data.RemoveValues(dateTimePickerStart.Value, dateTimePickerEnd.Value, DataRemovalConstants.drRemoveAll);
+              
+            });
+            notify($"Значения удалены из {tagName}");
+        }
+
+        private void isDefaultConnection_CheckedChanged(object sender, EventArgs e)
+        {
+            if (isDefaultConnection.Checked)
+            {
+                panelAuth.Hide();
+                textBoxServer.ReadOnly = true;
+            }
+            else
+            {
+                panelAuth.Show();
+                textBoxServer.ReadOnly = false;
+            }
+        }
     }
 }
