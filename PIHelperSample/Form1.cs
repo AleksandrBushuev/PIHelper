@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Pi.Client;
+using PIHelperSample.Logger;
+using PIHelperSample.Simulators;
 using PISDK;
 using PIPoint = PISDK.PIPoint;
 
@@ -15,14 +18,16 @@ namespace PIHelperSample
     public partial class Form1 : Form
     {
         private PISDK.PISDK SDK;
-        private Server server;
-        private PIClient _server;
-        private ISimulator simulator;
+        private Server _serverPISDK;
+        private PIClient _piClient;
+        private ISimulator _simulator;
         private bool isConnect;
-               
+        private ILogger _logger;
+
         public Form1()
         {
             InitializeComponent();
+            _logger = new FormLogger(textBoxLog);
         }
 
         private void buttonWrite_Click(object sender, EventArgs e)
@@ -31,30 +36,32 @@ namespace PIHelperSample
             object value = textBoxValue.Text;
             DateTime date = dateTimePicker1.Value;
 
-            if (_server.IsConnected)
+            if (_piClient.IsConnected)
             {
                 try
                 {
-                    _server.UpdateValue(tagName, value, date);
-                    notify("Запись выполнена успешно!");
+                    _piClient.UpdateValue(tagName, value, date);
+                    _logger.LogDebug("Запись выполнена успешно!");
                 }catch(NullReferenceException ex)
                 {
-                    notify(ex.Message);
+                    _logger.LogError(ex.Message);
                 }               
-            }         
+            }        
             
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            SDK = new PISDK.PISDK();
-            string defaultServerName = SDK.Servers.DefaultServer.Name;
-
-            if (!string.IsNullOrEmpty(defaultServerName))
+            try
             {
-                textBoxServer.Text = defaultServerName;
+                SDK = new PISDK.PISDK();             
+                textBoxServer.Text = SDK.Servers.DefaultServer.Name;
             }
-
+            catch(COMException ex)
+            {
+                textBoxServer.Text = string.Empty;
+                _logger.LogError("Отсутствует библиотека PISDK!", ex);
+            }
             
             dateTimePicker1.Format = DateTimePickerFormat.Custom;
             dateTimePicker1.CustomFormat = "dd.MM.yyyy HH:mm:ss";
@@ -84,7 +91,13 @@ namespace PIHelperSample
 
         private void btnConnect_Click(object sender, EventArgs e)
         {
-            string serverName = string.Empty;
+            if (SDK == null)
+            {
+                _logger.LogError("Отсутствует библиотека калассов PISDK");
+                return;
+            }
+
+           string serverName = string.Empty;
             if (isDefaultConnection.Checked)
             {
                 serverName = SDK.Servers.DefaultServer.Name;
@@ -94,17 +107,17 @@ namespace PIHelperSample
             {
                 if (string.IsNullOrEmpty(textBoxServer.Text))
                 {
-                    notify("Не указано имя сервера");
+                    _logger.LogError("Не указано имя сервера");
                     return;
                 }
                 if (string.IsNullOrEmpty(inputUserName.Text))
                 {
-                    notify("Не указано имя пользователя");
+                    _logger.LogError("Не указано имя пользователя");
                     return;
                 }
                 if (string.IsNullOrEmpty(inputPassword.Text))
                 {
-                    notify("Не указан пароль");
+                    _logger.LogError("Не указан пароль");
                     return;
                 }
                 serverName = textBoxServer.Text;
@@ -121,14 +134,14 @@ namespace PIHelperSample
             {
                 textBoxServer.ForeColor = Color.Green;
                 textBoxServer.BackColor = textBoxServer.BackColor;
-                notify(string.Format("Подключение успешно выполенено!"));
+                _logger.LogDebug(string.Format("Подключение успешно выполенено!"));
             }
             else
             {
                
                 textBoxServer.ForeColor = Color.Red;
                 textBoxServer.BackColor = textBoxServer.BackColor;
-                notify(string.Format("Не удалось выполнить подключение!"));
+                _logger.LogError(string.Format("Не удалось выполнить подключение!"));
             }
         }
 
@@ -136,77 +149,46 @@ namespace PIHelperSample
         {            
             try
             {
-                server = SDK.Servers.DefaultServer;
-                server.Open();
-                _server = new PIClient();
-                _server.Connect();
+                _serverPISDK = SDK.Servers.DefaultServer;
+                _serverPISDK.Open();
+                _piClient = new PIClient();
+                _piClient.Connect();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Не удалось выполнить подключение к серверу {serverName}\n\n {ex.Message}", "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError($"Не удалось выполнить подключение к серверу {serverName}\n\n {ex.Message}");
             }
-            if (server != null && server.Connected && _server.IsConnected)
-            {            
-                isConnect = true;
-            }
-            else
-            {           
-                isConnect = false;
-            }                         
+            isConnect = _serverPISDK != null && _serverPISDK.Connected && _piClient.IsConnected;
+                                  
         }
 
         private void Connect(string serverName, string userName, string password)
         {
             try
             {
-                server = SDK.Servers[serverName];
-                server.Open($"UID={userName};PWD={password}"); //PISDK
+                _serverPISDK = SDK.Servers[serverName];
+                _serverPISDK.Open($"UID={userName};PWD={password}"); //PISDK
 
-                _server = new PIClient();
-                _server.Connect(serverName, userName, password); //AFSDK
+                _piClient = new PIClient();
+                _piClient.Connect(serverName, userName, password); //AFSDK
+                isConnect = _serverPISDK != null && _serverPISDK.Connected && _piClient.IsConnected;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Не удалось выполнить подключение к серверу {serverName}\n\n {ex.Message}", "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            if (server != null && server.Connected && _server.IsConnected)
-            {
-                isConnect = true;
-            }
-            else
-            {
+                _logger.LogError($"Не удалось выполнить подключение к серверу {serverName}\n\n {ex.Message}", ex);
                 isConnect = false;
-            }
+            }                  
         }
-
-
-        private void notify(string message)
-        {
-            lbMessage.Text = message;
-        }
-
-
 
         private void btnStart_Click(object sender, EventArgs e)
         {
             if (!isConnect)
             {
-                notify("Отсутствует подключение с сервером!!!");
+                _logger.LogError("Отсутствует подключение с сервером!!!");
                 return;
             }
 
-            
-
-            switch (comboBox1.SelectedIndex)
-            {
-                case 0:                    
-                    simulator = new SimulatorRandom();                    
-                    break;   
-                case 1:
-                    simulator = new SimulatorSinusoid();
-                    break;
-            }
-                
+            _simulator = GetSimulator();
 
             PIPoint tag = searchPoint(textBoxTag.Text);
             if (tag == null)
@@ -214,64 +196,88 @@ namespace PIHelperSample
                 return;
             }
 
-            SimulatorParam param = new SimulatorParam();
-            try
-            {
-                if (comboBox1.SelectedIndex == 0)
-                {
-                    param.min = double.Parse(textBox4.Text);
-                }               
-                param.max = double.Parse(textBox5.Text);
-                param.stepTime = int.Parse(textBox6.Text);
+            double min = 0;
+            double max = 0;
+            int step = 0;
 
-                if (param.stepTime >= 43200)
-                {
-                    throw new Exception("Step Time не может быть больше 12 часов!!!"); 
-                };
-                param.tag = tag;
-
-            }
-            catch(Exception ex)
+            if (comboBox1.SelectedIndex == 0 && !double.TryParse(textBox4.Text, out min))
             {
-                MessageBox.Show(string.Format("{0}", ex.Message), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError("Укажите минимальное значение в цифровом формате!");
                 return;
-            }    
+            }
 
-            if (simulator != null)
-            {                 
-                simulator.Start(param);
-                notify("Simulator запущен!");
+            if (!double.TryParse(textBox5.Text, out max))
+            {
+                _logger.LogError("Укажите максимальное значение в цифровом формате!");
+                return;
+            }
+
+            if (!int.TryParse(textBox6.Text, out step))
+            {
+                _logger.LogError("Укажите интервал записи в цифровом формате!");
+                return;
+            }
+
+            if (step >= 43200)
+            {
+                textBox6.Text = step.ToString();
+                step = 43200;
+            };
+
+            var param = new SimulatorParam()
+            {
+                Max = max,
+                Min = min,
+                StepTime = step,
+                Tag = tag
+            };
+
+            if (_simulator != null)
+            {
+                _simulator.Start(param);
+                _logger.LogDebug("Simulator запущен!");
                 btnStart.Enabled = false;
                 btnStop.Enabled = true;
             }
             else
             {
-                notify("Не удалось определить тип Simulator!!!");
-            }       
+                _logger.LogError("Не удалось определить тип Simulator!!!");
+            }
 
-        }       
+        }
+
+        private ISimulator GetSimulator()
+        {           
+            switch (comboBox1.SelectedIndex)
+            {
+                case 0:
+                    return new SimulatorRandom();                  
+                case 1:
+                   return new SimulatorSinusoid();
+                default:
+                    return new SimulatorRandom();
+            }
+        }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
-            simulator.Stop();
-            notify("Simulator остановлен!");
+            _simulator.Stop();
+            _logger.LogDebug("Simulator остановлен!");
             btnStart.Enabled = true;
             btnStop.Enabled = false;
         }
 
         private PIPoint searchPoint(string tagName)
-        {
-            PIPoint tag=null;
+        {           
             try
             {
-                 tag= server.GetPoints("tag = '" + tagName + "'")[1];
+                PIPoint tag = _serverPISDK.GetPoints("tag = '" + tagName + "'")[1];
+                return tag;
             }
             catch (Exception ex) {
-                MessageBox.Show(string.Format("Не удалось найти тег {0}\n\n {1}", tagName, ex.Message), "Ошибка поиска", MessageBoxButtons.OK, MessageBoxIcon.Error);
-               
+               _logger.LogError($"Не удалось найти тег {tagName}\n", ex);
+                return null;
             }
-            return tag;
-           
         }
        
         private void comboBox1_SelectionChangeCommitted(object sender, EventArgs e)
@@ -294,13 +300,13 @@ namespace PIHelperSample
 
             if (!isConnect)
             {
-                notify("Отсутствует подключение с сервером!!!");
+                _logger.LogError("Отсутствует подключение с сервером!!!");
                 return;
             }
 
             if (dateStart > dateEnd)
             {
-                MessageBox.Show(string.Format("Начальная дата не может быть больше или равна конечной!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError("Введите начальную дату больше конечной!!!");
                 return;
             }
 
@@ -312,25 +318,25 @@ namespace PIHelperSample
 
             if (!int.TryParse(textBox3.Text, out min))
             {
-                MessageBox.Show(string.Format("Не удалось распознать формат данных поля Min!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError("Не удалось распознать формат данных поля Min!!!");
                 return;
             }
 
             if (!int.TryParse(textBox2.Text, out max))
             {
-                MessageBox.Show(string.Format("Не удалось распознать формат данных поля Max!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError("Не удалось распознать формат данных поля Max!!!");
                 return;
             }
 
             if (min >= max)
             {
-                MessageBox.Show(string.Format("Min не должно быть больше или равно Max!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError("Min не должно быть больше или равно Max!!!");
                 return;
             }
 
             if(!int.TryParse(textBox1.Text, out stepTime))
             {
-                MessageBox.Show(string.Format("Не удалось распознать формат данных поля StepTime!!!"), "Ошибка ввода данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _logger.LogError("Не удалось распознать формат данных поля StepTime!!!");
                 return;
             }
             TimeSpan interval = ConvertSecond(stepTime);
@@ -339,9 +345,7 @@ namespace PIHelperSample
 
             btWriteValues.Enabled = false;
             WriteRangeAsync(tag,values);
-            notify("Выполняется запись данных...");
-            
-
+            _logger.LogDebug("Выполняется запись данных...");
         }
 
 
@@ -369,14 +373,9 @@ namespace PIHelperSample
 
             if (status)
             {
-                notify($"Запись {sucssesCount} из {values.Count} выполнена успешно! С ошибками {errorCount}");
-                btWriteValues.Enabled = true;
+                _logger.LogDebug($"Запись {sucssesCount} из {values.Count} выполнена успешно! С ошибками {errorCount}");
             }
-            else
-            {
-                btWriteValues.Enabled = true;
-            }
-
+            btWriteValues.Enabled = true;
         }
 
         private async void WriteRangeAsync(PIPoint tag, List<CSVDataRow> values, Button btn)
@@ -392,7 +391,7 @@ namespace PIHelperSample
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(ex.Message, "Ошибка записи данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _logger.LogError("Ошибка записи данных", ex);
                         return false;
                     }
 
@@ -402,7 +401,7 @@ namespace PIHelperSample
 
             if (status)
             {
-                notify("Запись выполнена успешно!");              
+                _logger.LogDebug("Запись выполнена успешно!");              
             }
 
             btn.Enabled = true;
@@ -460,7 +459,7 @@ namespace PIHelperSample
             string tagName = textBoxTag.Text;
             if (string.IsNullOrEmpty(tagName))
             {
-                MessageBox.Show("Укажите тег в который необходимо выполнить запись значений", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _logger.LogError("Укажите тег в который необходимо выполнить запись значений");
                 return;
             }
 
@@ -468,15 +467,15 @@ namespace PIHelperSample
             
             if(string.IsNullOrEmpty(filePath))
             {
-                notify("Не указан файл импорта!");
+                _logger.LogError("Не указан файл импорта!");
                 return;
             }
 
             IEnumerable<IValueData> values = await GetDataImportAsync(filePath);
             
-            int count = _server.ImportCsv(textBoxTag.Text, values);
+            int count = _piClient.ImportCsv(textBoxTag.Text, values);
 
-            MessageBox.Show($"Выполнена запись {count} значений");
+           _logger.LogDebug($"Выполнена запись {count} значений");
         }
 
         
@@ -511,24 +510,21 @@ namespace PIHelperSample
 
         private async void btnDeleteValues_Click(object sender, EventArgs e)
         {            
-            string tagName = textBoxTag.Text;
-            if (string.IsNullOrEmpty(tagName))
-            {
-                MessageBox.Show("Укажите тег в который необходимо выполнить запись значений", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            notify($"Выполняется удаление значений из тега {tagName}");
+            var tagName = textBoxTag.Text;
+            if (string.IsNullOrEmpty(tagName))            
+                _logger.LogError("Укажите тег в который необходимо выполнить запись значений");
+            
+            _logger.LogDebug($"Выполняется удаление значений из тега {tagName}");
             await Task.Run(() =>
             {
-                PIPoint tag = searchPoint(tagName);
+                var tag = searchPoint(tagName);
                 if (tag == null)
-                {
-
-                }
+                      return;
+                
                 tag.Data.RemoveValues(dateTimePickerStart.Value, dateTimePickerEnd.Value, DataRemovalConstants.drRemoveAll);
               
             });
-            notify($"Значения удалены из {tagName}");
+            _logger.LogDebug($"Значения удалены из {tagName}");
         }
 
         private void isDefaultConnection_CheckedChanged(object sender, EventArgs e)

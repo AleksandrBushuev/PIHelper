@@ -113,10 +113,15 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="Logger\ILogger.cs" />
+    <Compile Include="Logger\LoggerForm.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Simulator.cs" />
     <Compile Include="CSVDataRow.cs" />
+    <Compile Include="Simulators\ISimulator.cs" />
+    <Compile Include="Simulators\SimulatorParam.cs" />
+    <Compile Include="Simulators\SimulatorRandom.cs" />
+    <Compile Include="Simulators\SimulatorSinusoid.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
