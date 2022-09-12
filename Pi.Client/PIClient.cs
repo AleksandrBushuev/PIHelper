@@ -5,17 +5,13 @@ using OSIsoft.AF.PI;
 using OSIsoft.AF.Time;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pi.Client
 {
     public class PIClient
     {
-
         PIServer _server;
 
         public bool IsConnected => isConnected();
@@ -65,9 +61,7 @@ namespace Pi.Client
 
             AFTimeRange timeRange = new AFTimeRange(new AFTime(endTime), new AFTime(startTime));
             AFValues values = tag.RecordedValues(timeRange, AFBoundaryType.Outside, null, false, int.MaxValue);
-       
-            
-
+                  
             AFErrors<AFValue> errors = tag.UpdateValues(values, AFUpdateOption.Replace);
             if (errors != null)
             {
@@ -75,7 +69,6 @@ namespace Pi.Client
             }
 
             return values.Count();
-
         }
 
         public void UpdateValue(string pointName, object value, DateTime time)
@@ -87,9 +80,7 @@ namespace Pi.Client
             AFValue afValue = GetAFValue(value, time);
             tag.UpdateValue(afValue, AFUpdateOption.Replace);
 
-        }
-
-        
+        }        
 
         public int ImportCsv(string tagName, IEnumerable<IValueData> values)
         {
@@ -103,23 +94,18 @@ namespace Pi.Client
                 data.Add(value);
             }
             AFErrors<AFValue> errors= tag.UpdateValues(data, AFUpdateOption.Replace);
+            
             if (errors != null)
-            {
                 return values.Count() - errors.Errors.Count();
-            }
-
-            return values.Count();
-           
+            
+            return values.Count();           
         }
-
        
         private AFValue GetAFValue(object value, DateTime time)
         {
             AFValue afValue = new AFValue(value, new AFTime(time));
             return afValue;
         }
-
-
 
         private NetworkCredential  GetCredential(string userName, string password)
         {         
@@ -132,7 +118,6 @@ namespace Pi.Client
                  return _server.ConnectionInfo.IsConnected;
             return false;
         }
-
       
     }
 }

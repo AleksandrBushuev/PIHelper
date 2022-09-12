@@ -655,7 +655,7 @@
             this.isDefaultConnection.TabIndex = 5;
             this.isDefaultConnection.Text = "DefaultConnection";
             this.isDefaultConnection.UseVisualStyleBackColor = true;
-            this.isDefaultConnection.CheckedChanged += new System.EventHandler(this.isDefaultConnection_CheckedChanged);
+            this.isDefaultConnection.CheckedChanged += new System.EventHandler(this.IsDefaultConnection_CheckedChanged);
             // 
             // openFileDialog1
             // 

@@ -46,7 +46,7 @@ namespace PIHelperSample
                 {
                     _logger.LogError(ex.Message);
                 }               
-            }        
+            }         
             
         }
 
@@ -74,7 +74,6 @@ namespace PIHelperSample
 
             btnStop.Enabled = false;
             textBox4.Enabled = false;
-
         }
 
         private void btnTagSearch_Click(object sender, EventArgs e)
@@ -129,7 +128,6 @@ namespace PIHelperSample
 
         private void indicateConnection()
         {
-
             if (isConnect)
             {
                 textBoxServer.ForeColor = Color.Green;
@@ -191,11 +189,10 @@ namespace PIHelperSample
             _simulator = GetSimulator();
 
             PIPoint tag = searchPoint(textBoxTag.Text);
-            if (tag == null)
-            {
+           
+            if (tag == null)            
                 return;
-            }
-
+            
             double min = 0;
             double max = 0;
             int step = 0;
@@ -224,6 +221,7 @@ namespace PIHelperSample
                 step = 43200;
             };
 
+
             var param = new SimulatorParam()
             {
                 Max = max,
@@ -231,6 +229,7 @@ namespace PIHelperSample
                 StepTime = step,
                 Tag = tag
             };
+
 
             if (_simulator != null)
             {
@@ -400,15 +399,12 @@ namespace PIHelperSample
             });
 
             if (status)
-            {
                 _logger.LogDebug("Запись выполнена успешно!");              
-            }
+            
 
             btn.Enabled = true;
 
         }
-
-
         private SortedList<DateTime, int> GenerateValuesByTime(int min, int max, TimeSpan interval, DateTime start, DateTime end)
         {
             SortedList<DateTime, int> values = new SortedList<DateTime, int>();
@@ -431,14 +427,11 @@ namespace PIHelperSample
         }
 
         private TimeSpan ConvertSecond(int seconds)
-        {
-
-            
+        {            
             int s = seconds % 60;
             int m = seconds / 60;
             int h = 0;
             int d = 0;
-
 
             if (m >= 60)
             {
@@ -522,12 +515,11 @@ namespace PIHelperSample
                       return;
                 
                 tag.Data.RemoveValues(dateTimePickerStart.Value, dateTimePickerEnd.Value, DataRemovalConstants.drRemoveAll);
-              
             });
             _logger.LogDebug($"Значения удалены из {tagName}");
         }
 
-        private void isDefaultConnection_CheckedChanged(object sender, EventArgs e)
+        private void IsDefaultConnection_CheckedChanged(object sender, EventArgs e)
         {
             if (isDefaultConnection.Checked)
             {
